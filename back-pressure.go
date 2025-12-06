@@ -10,6 +10,7 @@ type BackPressure[T any] struct {
 	thresholdPercentage int64
 	channel             chan T
 	wait                time.Duration
+	quite               chan struct{}
 }
 
 func NewBackPressure[T any](maxSizeChannel, thresholdPercentage int64, wait time.Duration) *BackPressure[T] {
@@ -19,9 +20,21 @@ func NewBackPressure[T any](maxSizeChannel, thresholdPercentage int64, wait time
 		thresholdPercentage: thresholdPercentage,
 		channel:             make(chan T, maxSizeChannel),
 		wait:                wait,
+		quite:               make(chan struct{}),
 	}
 	go b.Wait()
+	go b.ShotDown()
 	return b
+}
+func (b *BackPressure[T]) ShotDown() {
+
+	<-b.quite
+
+	if len(b.channel) == 0 {
+		log.Println("BACK PRESSURE: CHANNEL IS EMPTY NOW I CLOSE IT")
+		close(b.channel)
+	}
+
 }
 
 func (b *BackPressure[T]) Add(item T) {
@@ -40,4 +53,8 @@ func (b *BackPressure[T]) Wait() {
 
 func (b *BackPressure[T]) Out() chan T {
 	return b.channel
+}
+
+func (b *BackPressure[T]) Close() {
+	close(b.quite)
 }
