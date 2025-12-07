@@ -2,7 +2,6 @@ package BackPressure
 
 import (
 	"log"
-	"time"
 )
 
 type BackPressure[T any] struct {
@@ -12,7 +11,7 @@ type BackPressure[T any] struct {
 	AddCounter int64
 }
 
-func NewBackPressure[T any](bufferSize, thresholdPercentage int64, wait time.Duration) *BackPressure[T] {
+func NewBackPressure[T any](bufferSize int64) *BackPressure[T] {
 	b := &BackPressure[T]{
 		bufferSize: bufferSize,
 		channel:    make(chan T, bufferSize),
@@ -26,7 +25,6 @@ func (b *BackPressure[T]) Add(item T) {
 	for {
 		if int64(len(b.channel)) == b.bufferSize {
 			log.Printf("BACK PRESSURE: Buffer is full... producer is screaming internally 😤")
-
 		}
 		select {
 		case b.channel <- item:
